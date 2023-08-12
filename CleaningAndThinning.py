@@ -76,7 +76,7 @@ def get_raw(taxon_key,taxon_name):
         else:
             print(str(datetime.datetime.now()) + ": Status: '" + str(b['status']) + "'")
             time.sleep(20)
-    print(str(datetime.datetime.now()) + ": Occurrences fetched for " + str(taxon_key))
+    print(str(datetime.datetime.now()) + ": Occurrences fetched for " + str(taxon_name))
     return raw_occ_path
 
 
