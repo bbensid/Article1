@@ -10,6 +10,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from zipfile import ZipFile
 import shapefile as shp
+from osgeo import gdal
 
 taxon_name = sys.argv[1]
 
@@ -200,7 +201,7 @@ cleaned_occ_path = clean_occ(taxon_key,taxon_name)
 
 ###PREPARE ALL FUNCTIONS    
 
-def get_first_grid(geopoint):
+def get_first_grid(geopoint,min_cell_size):
     xmin, ymin, xmax, ymax= geopoint.total_bounds
     xdiff=xmax-xmin
     ydiff=ymax-ymin
@@ -257,11 +258,10 @@ def thin_occ(taxon_key,taxon_name):
     df = pd.read_csv(cleaned_occ_path, sep='@', encoding='utf-8')
     print(str(datetime.datetime.now()) + ": Loaded "  + str(df.shape[0]) + " cleaned occurences for " + taxon_name)
     gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.decimalLongitude, df.decimalLatitude),crs=crs)
-    print(str(datetime.datetime.now()) + ": " + taxon_name + " has "+ str(gdf.shape[0]) +" cleaned occurrences")
     del df
     gc.collect()
     if len(gdf) > 19:
-        cell,cell_size,n_round_for_next = get_first_grid(gdf)
+        cell,cell_size,n_round_for_next = get_first_grid(gdf,min_cell_size)
         print(str(datetime.datetime.now()) + ": original cell df has " + str(cell.shape[0]) + " rows")
         ##Recursively reduce grid cell size and select only cells that encapsulate data points
         while n_round_for_next>0:
