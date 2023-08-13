@@ -59,6 +59,7 @@ taxon_key = get_key(taxon_name)
 ##Get the raw occurrences fom GBIF
 
 def get_raw(taxon_key,taxon_name):
+    start_ts = datetime.datetime.now()
     print(str(datetime.datetime.now()) + ": Fetching occurrences for " + taxon_name + "!")
     occ.count(taxonKey = str(taxon_key),isGeoreferenced = True)
     a = occ.download(queries=['taxonKey = ' + str(taxon_key), 'hasCoordinate = TRUE','hasGeospatialIssue = False','decimalLatitude < 90','decimalLongitude < 180','decimalLatitude > -90','decimalLongitude > -180'],user=gbif_user, pwd=gbif_password, email='')
