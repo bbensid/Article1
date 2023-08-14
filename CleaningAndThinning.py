@@ -12,7 +12,7 @@ from zipfile import ZipFile
 import shapefile as shp
 from osgeo import gdal
 
-taxon_name = sys.argv[1]
+taxon_search_name = sys.argv[1]
 
 #######################################################################################################
 #######################################SET SCRIPT VARIABLES############################################
@@ -44,7 +44,8 @@ def get_key(taxon_name):
     while i<3:
         try:
             taxon_key = species.name_backbone(name=taxon_name, kingdom='plants', genus = taxon_name.split(' ')[0])['speciesKey']
-            return taxon_key
+            taxon_actual_name = species.name_backbone(name=taxon_name, kingdom='plants', genus = taxon_name.split(' ')[0])['species']
+            return taxon_key,taxon_actual_name
             break
         except:
             print(str(datetime.datetime.now()) + ": Error connecting to GBIF, waiting...")
@@ -54,7 +55,10 @@ def get_key(taxon_name):
     sys.exit()
 
 
-taxon_key = get_key(taxon_name)
+taxon_key, taxon_name = get_key(taxon_search_name)
+
+if taxon_name != taxon_search_name:
+    print('SEARCH NAME (' + taxon_search_name + ') IN GBIF LEADS TO A DIFFERENT SPECIES (' + taxon_name + '): DOUBLE CHECK ON www.gbif.org !!')
 
 ##Get the raw occurrences fom GBIF
 
@@ -229,7 +233,7 @@ def get_selected_cells(cell,geopoint):
         merged2 = merged2.loc[merged2.groupby(['decimalLongitude','decimalLatitude']).index_right.idxmin()].reset_index(drop=True)
         if not merged2.empty:
             merged=pd.concat([merged,merged2])
-    return cell.loc[cell.index.isin(merged['index_right'].tolist())]
+    return cell.loc[cell.index.isin(merged['index_right'].tolist())].reset_index(drop=True)
 
 def get_next_grid(cell):
     cell2=cell.copy()
