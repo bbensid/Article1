@@ -69,10 +69,10 @@ def get_poly(df,thresh):
         # Loop through all polygons that have the same intensity level
         for contour in col.get_paths(): 
             if len(contour)==1:
-            ## Contour is just one point,skipping##
+            ## Contour is just one point, skipping##
                 continue
             # Create a polygon for the countour
-            # First polygon is the main countour, the rest are holes
+            # First polygon is the main countour, the rest are holes if any (should not happen as those polygons are from kernel-density based contours)
             for ncp,cp in enumerate(contour.to_polygons()):
                 if type(cp) is not np.ndarray:
                     cp = np.array(cp)
@@ -82,7 +82,7 @@ def get_poly(df,thresh):
                 if ncp == 0:
                     poly = new_shape
                 else:
-                    # Remove holes, if any
+                    # Remove holes, if any (should not happen as those polygons from kernel-density based contours)
                     poly = poly.difference(new_shape)
             # Append polygon to list
             paths.append(poly)
@@ -98,12 +98,13 @@ def removing_holes(p_list):
         ##list empty,returning None##
         return None
     elif len(p_list)==1:
-        ##return the singlepolygonin case there is only one polygon##
+        ##return the single polygon in case there is only one polygon##
         return p_list
     else:
         area_list=[]
         for p in p_list:
             area_list.append(p.area)
+        ##Create an ordered list of the polygons by decreasing area##
         order_p=[]
         p_list_copy=p_list.copy()
         area_list_copy=area_list.copy()
@@ -111,6 +112,9 @@ def removing_holes(p_list):
             order_p.append(p_list_copy[area_list_copy.index(max(area_list_copy))])
             p_list_copy.pop(area_list_copy.index(max(area_list_copy)))
             area_list_copy.pop(area_list_copy.index(max(area_list_copy)))
+        ##checking if any of the smaller polygons are contained in the bigger polygon,in that case it is properly a hole and it is removed##
+        ##this way takes also care of the (rare) cases with "russian dolls" polygons, where a holes have actual areas in them that should be counted as the niche area##
+        ##by recursively removing the holes, hence the subsequent "plain" contour inside the hole is not anymore contained in the new polygon with the hole##
         final_list=[]
         to_remove=[]
         for p in order_p:
