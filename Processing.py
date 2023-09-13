@@ -68,6 +68,9 @@ def get_poly(df,thresh):
         paths = []
         # Loop through all polygons that have the same intensity level
         for contour in col.get_paths(): 
+            if len(contour)==1:
+            ## Contour is just one point,skipping##
+                continue
             # Create a polygon for the countour
             # First polygon is the main countour, the rest are holes
             for ncp,cp in enumerate(contour.to_polygons()):
@@ -88,21 +91,63 @@ def get_poly(df,thresh):
     gc.collect()
     return paths
 
+def removing_holes(p_list): 
+    ## This function gets a list of polyon pairs, and gives a new list of polygons with actual holes in them ##
+    ## when one polygon is inside another in the original list ##
+    if len(p_list)==0:
+        ##list empty,returning None##
+        return None
+    elif len(p_list)==1:
+        ##return the singlepolygonin case there is only one polygon##
+        return p_list
+    else:
+        area_list=[]
+        for p in p_list:
+            area_list.append(p.area)
+        order_p=[]
+        p_list_copy=p_list.copy()
+        area_list_copy=area_list.copy()
+        for i in range(len(p_list)):
+            order_p.append(p_list_copy[area_list_copy.index(max(area_list_copy))])
+            p_list_copy.pop(area_list_copy.index(max(area_list_copy)))
+            area_list_copy.pop(area_list_copy.index(max(area_list_copy)))
+        final_list=[]
+        to_remove=[]
+        for p in order_p:
+            if order_p.index(p)<len(order_p)-1 and p not in to_remove:
+                result_polygon=p
+                for smaller_p in order_p[order_p.index(p)+1:]:
+                    if result_polygon.contains(smaller_p):
+                        to_remove.append(smaller_p)
+                        result_polygon=result_polygon.difference(smaller_p)
+                final_list.append(result_polygon)
+            elif order_p.index(p)==len(order_p)-1 and p not in to_remove:
+                final_list.append(p)
+        return final_list
+
+
 def get_K(p1_list,p2_list):
-    p1_area=0
-    intersection_area=0
-    for p1 in p1_list:
-        p1_area += p1.area
-        for p2 in p2_list:
-            intersection_area += p1.intersection(p2).area
-    return intersection_area/p1_area
+    if p1_list==[] or p2_list==[]:
+            ## Exiting with None, as both polygon list should be non-empty ##
+            return None
+    else:
+        p1_list_new = removing_holes(p1_list)
+        p2_list_new = removing_holes(p2_list)
+        p1_area = 0
+        intersection_area = 0
+        for p1 in p1_list_new:
+            p1_area += p1.area
+            for p2 in p2_list_new:
+                intersection_area += p1.intersection(p2).area
+        ## the rounding to 10 decimals is because, the intersection aera is a sum over calculation that have a certain error,this adds uo andcan get over 100%##
+        ##usually at the 16th decimal, so this is really just not to have that###
+        return round(intersection_area/p1_area,10)
 
 def chunking_dot(big_matrix, small_matrix, chunk_size=5000):
     # Make a copy if the array is not already contiguous
     small_matrix = np.ascontiguousarray(small_matrix)
     diag = np.empty((big_matrix.shape[0],))
     for j in range(0, big_matrix.shape[0], chunk_size):
-        #print(str(j))
         end = j + chunk_size
         f = np.dot(big_matrix[j:end], small_matrix)
         diag[j:end] = f.diagonal()
