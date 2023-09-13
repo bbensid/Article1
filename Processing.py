@@ -64,28 +64,28 @@ def get_poly(df,thresh):
         ,levels = 1
         ,thresh=thresh
         )
-    for col in kde.collections:
-        paths = []
-        # Loop through all polygons that have the same intensity level
-        for contour in col.get_paths(): 
-            if len(contour)==1:
-            ## Contour is just one point, skipping##
-                continue
-            # Create a polygon for the countour
-            # First polygon is the main countour, the rest are holes if any (should not happen as those polygons are from kernel-density based contours)
-            for ncp,cp in enumerate(contour.to_polygons()):
-                if type(cp) is not np.ndarray:
-                    cp = np.array(cp)
-                x = cp[:,0]
-                y = cp[:,1]
-                new_shape = Polygon([(i[0], i[1]) for i in zip(x,y)])
-                if ncp == 0:
-                    poly = new_shape
-                else:
-                    # Remove holes, if any (should not happen as those polygons from kernel-density based contours)
-                    poly = poly.difference(new_shape)
-            # Append polygon to list
-            paths.append(poly)
+    col = kde.collections[0]
+    paths = []
+    # Loop through all polygons that have the same intensity level
+    for contour in col.get_paths(): 
+        if len(contour)==1:
+        ## Contour is just one point, skipping##
+            continue
+        # Create a polygon for the countour
+        # First polygon is the main countour, the rest are holes if any (should not happen as those polygons are from kernel-density based contours)
+        for ncp,cp in enumerate(contour.to_polygons()):
+            if type(cp) is not np.ndarray:
+                cp = np.array(cp)
+            x = cp[:,0]
+            y = cp[:,1]
+            new_shape = Polygon([(i[0], i[1]) for i in zip(x,y)])
+            if ncp == 0:
+                poly = new_shape
+            else:
+                # Remove holes, if any (should not happen as those polygons from kernel-density based contours)
+                poly = poly.difference(new_shape)
+        # Append polygon to list
+        paths.append(poly)
     plt.close()
     del kde
     gc.collect()
