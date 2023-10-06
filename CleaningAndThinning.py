@@ -2,15 +2,15 @@
 #   python3 CleaningAndThinning.py 'Populus alba'
 
 
-import datetime, sys, os, time, gc, pandas as pd, geopandas, random, numpy as np
+import datetime, sys, os, time, gc, pandas as pd, geopandas, random, numpy as np, pyreadr, pyproj, shapefile as shp, shapely.wkt
 from pygbif import species
 from pygbif import occurrences as occ
-import shapely.wkt
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from zipfile import ZipFile
-import shapefile as shp
 from osgeo import gdal
+from functools import partial
+from shapely.ops import transform
 
 taxon_search_name = sys.argv[1]
 
@@ -18,20 +18,100 @@ taxon_search_name = sys.argv[1]
 #######################################SET SCRIPT VARIABLES############################################
 #######################################################################################################
 
+#Always true
+institutions_rda_url = "https://raw.githubusercontent.com/ropensci/CoordinateCleaner/master/data/institutions.rda"
+country_rda_url = "https://raw.githubusercontent.com/ropensci/CoordinateCleaner/master/data/countryref.rda"
+crs = '+proj=longlat +datum=WGS84' 
+
+
 #Specific to running environment and user
 gbif_user = 'badisbens'
 gbif_password ='cocobanane'
 raw_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/0-Raw/'
 cleaned_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/1-Cleaned/'
 thinned_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/2-Thinned/'
-institutions_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/institutions_df.txt'
-country_centroids_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/country_centroid_df.txt'
-capitals_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/capital_df.txt'
+institutions_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/institutions.rda'
+country_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/countryref.rda'
 land_path = '/Users/home/Documents/PhD/GBIF_source/biomes/official/wwf_terr_ecos.shp'
 bioclim_1_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Bio1980-2010/CHELSA_bio1_1981-2010_V.2.1.tif'
 
-#Always true
-crs = '+proj=longlat +datum=WGS84' 
+
+
+#######################################################################################################
+#################################PREPARE GEODATAFRAMES FOR CLEANING OCCURENCES############################
+#######################################################################################################
+
+
+def geodesic_point_buffer(lat, lon, m):
+    proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
+    # Azimuthal equidistant projection
+    aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+    project = partial(
+        pyproj.transform,
+        pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon))
+        ,proj_wgs84)
+    buf = Point(0, 0).buffer(m)  # distance in metres
+    return transform(project, buf).exterior.coords[:]
+
+##GET INSTITUTIONS 
+
+response = requests.get(institutions_rda_url)
+with open(institutions_path, 'wb') as file:
+    file.write(response.content)
+
+result = pyreadr.read_r(institutions_path)
+
+institution_df = result['institutions'] 
+institution_df = institution_df[~np.isnan(institution_df['decimalLongitude']) & ~np.isnan(institution_df['decimalLatitude'])]
+institution_df = institution_df.drop_duplicates()
+
+institution_df['buffer_100'] = institution_df.apply(lambda x: geodesic_point_buffer(x['decimalLatitude'], x['decimalLongitude'],100), axis=1)
+institution_df['polygon'] = institution_df.apply(lambda x: Polygon(x['buffer_100']), axis=1)
+institution_df['polygon_min_lon'] = institution_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[0]), axis=1)
+institution_df['polygon_max_lon'] = institution_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[0]), axis=1)
+institution_df['polygon_min_lat'] = institution_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[1]), axis=1)
+institution_df['polygon_max_lat'] = institution_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[1]), axis=1)
+institution_df = institution_df[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
+institution_gdf = geopandas.GeoDataFrame(institution_df, geometry=institution_df['polygon'],crs=crs)
+
+##GET COUNTRY AND CAPITAL REFERENCE DATA
+
+response = requests.get(country_rda_url)
+with open(country_path, 'wb') as file:
+    file.write(response.content)
+
+result = pyreadr.read_r(country_path)
+country_base_df = result['countryref']
+
+##GET COUNTRY CENTROIDS
+
+country_centroid_df = country_base_df[~np.isnan(country_base_df['centroid.lon']) & ~np.isnan(country_base_df['centroid.lat']) & (country_base_df['type']=='country')][['centroid.lat','centroid.lon']]
+country_centroid_df.columns= ['decimalLatitude','decimalLongitude']
+country_centroid_df = country_centroid_df.drop_duplicates()
+
+country_centroid_df['buffer_1000'] = country_centroid_df.apply(lambda x: geodesic_point_buffer(x['decimalLatitude'], x['decimalLongitude'],1000), axis=1)
+country_centroid_df['polygon'] = country_centroid_df.apply(lambda x: Polygon(x['buffer_1000']), axis=1)
+country_centroid_df['polygon_min_lon'] = country_centroid_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[0]), axis=1)
+country_centroid_df['polygon_max_lon'] = country_centroid_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[0]), axis=1)
+country_centroid_df['polygon_min_lat'] = country_centroid_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[1]), axis=1)
+country_centroid_df['polygon_max_lat'] = country_centroid_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[1]), axis=1)
+country_centroid_df = country_centroid_df[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
+country_centroid_gdf = geopandas.GeoDataFrame(country_centroid_df, geometry=country_centroid_df['polygon'],crs=crs)
+
+##GET CAPITALS
+
+capital_df = country_base_df[~np.isnan(country_base_df['capital.lon']) & ~np.isnan(country_base_df['capital.lat'])][['capital.lat','capital.lon']]
+capital_df = capital_df.drop_duplicates()
+capital_df.columns= ['decimallatitude','decimallongitude']
+
+capital_df['buffer_10000'] = capital_df.apply(lambda x: geodesic_point_buffer(x['decimallatitude'], x['decimallongitude'],10000), axis=1)
+capital_df['polygon'] = capital_df.apply(lambda x: Polygon(x['buffer_10000']), axis=1)
+capital_df['polygon_min_lon'] = capital_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[0]), axis=1)
+capital_df['polygon_max_lon'] = capital_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[0]), axis=1)
+capital_df['polygon_min_lat'] = capital_df.apply(lambda x: min(x['polygon'].exterior.coords.xy[1]), axis=1)
+capital_df['polygon_max_lat'] = capital_df.apply(lambda x: max(x['polygon'].exterior.coords.xy[1]), axis=1)
+capital_df = capital_df[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
+capital_gdf = geopandas.GeoDataFrame(capital_df, geometry=capital_df['polygon'],crs=crs)
 
 #######################################################################################################
 ############################################GET RAW DATA FROM GBIF#####################################
@@ -122,22 +202,6 @@ def get_outmost_polygons(coord_list):
 def clean_occ(taxon_key,taxon_name):
     print(str(datetime.datetime.now()) + ": Start cleaning raw occurences for " + taxon_name)
     print(str(datetime.datetime.now()) + ": Starting preparing reference dataframes for cleaning...")
-    #Get instituions, country centroids and world capitals data
-    institution_df = pd.read_csv(institutions_path, sep='@', encoding='utf-8')[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
-    country_centroid_df = pd.read_csv(country_centroids_path, sep='@', encoding='utf-8')[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
-    capital_df = pd.read_csv(capitals_path, sep='@', encoding='utf-8')[['polygon','polygon_min_lat','polygon_max_lat','polygon_min_lon','polygon_max_lon']]
-    institution_df = institution_df.drop_duplicates()
-    #Drop duplicates
-    country_centroid_df = country_centroid_df.drop_duplicates()
-    capital_df = capital_df.drop_duplicates()
-    #Turn the polygon column into actual Polygon object
-    institution_df['polygon'] = institution_df.apply(lambda x: shapely.wkt.loads(x['polygon']), axis=1)
-    country_centroid_df['polygon'] = country_centroid_df.apply(lambda x: shapely.wkt.loads(x['polygon']), axis=1)
-    capital_df['polygon'] = capital_df.apply(lambda x: shapely.wkt.loads(x['polygon']), axis=1)
-    #Transform dataframes into GeoDataframes
-    institution_gdf = geopandas.GeoDataFrame(institution_df, geometry=institution_df['polygon'],crs=crs)
-    country_centroid_gdf = geopandas.GeoDataFrame(country_centroid_df, geometry=country_centroid_df['polygon'],crs=crs)
-    capital_gdf = geopandas.GeoDataFrame(capital_df, geometry=capital_df['polygon'],crs=crs)
     #Get the WWF land data
     sf = shp.Reader(land_path, encoding = 'ISO8859-1')
     df_biomes = read_shapefile(sf)
