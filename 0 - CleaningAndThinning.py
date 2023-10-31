@@ -2,7 +2,7 @@
 #   python3 CleaningAndThinning.py 'Populus alba'
 
 
-import datetime, sys, os, time, gc, pandas as pd, geopandas, random, numpy as np, pyreadr, pyproj, shapefile as shp, shapely.wkt
+import datetime, sys, os, time, gc, pandas as pd, geopandas, random, numpy as np, pyreadr, pyproj, shapefile as shp, shapely.wkt, requests
 from pygbif import species
 from pygbif import occurrences as occ
 from shapely.geometry import Point
