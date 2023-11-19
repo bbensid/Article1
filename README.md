@@ -14,6 +14,6 @@ You will need to use Python 3.9.4 with the following packages versions in order 
 - scipy (version 1.9.3) 
 - pyshp (shapefile) (version 2.2.0) 
 - pyproj (version 3.3.0) 
-- GDAL (osgeo) (version 3.4.1) 
+- GDAL (osgeo) (version 3.7.3) 
 - matplotlib (version 3.4.3) 
 
