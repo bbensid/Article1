@@ -17,8 +17,8 @@ from scipy.stats import chi2
 #######################################################################################################
 
 #Specific to running environment 
-bioclim_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/3-Bioclim/'
-final_file_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/FINAL.txt'
+bioclim_occ_folder_path = '/XXXX/3-Bioclim/'
+final_file_path = '/XXXX/FINAL.txt'
 
 #######################################################################################################
 ############################################GET ALL DATA#####################################
