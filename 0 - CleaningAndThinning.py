@@ -19,21 +19,19 @@ taxon_search_name = sys.argv[1]
 #######################################################################################################
 
 #Always true
-institutions_rda_url = "https://github.com/bbensid/Article1/blob/main/data/institutions.rda" # copy from https://raw.githubusercontent.com/ropensci/CoordinateCleaner/master/data/institutions.rda
-country_rda_url = "https://github.com/bbensid/Article1/blob/main/data/countryref.rda" # copy from https://raw.githubusercontent.com/ropensci/CoordinateCleaner/master/data/countryref.rda
 crs = '+proj=longlat +datum=WGS84' 
 
 
 #Specific to running environment and user
-gbif_user = 'badisbens'
-gbif_password ='cocobanane'
-raw_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/0-Raw/'
-cleaned_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/1-Cleaned/'
-thinned_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/2-Thinned/'
-institutions_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/institutions.rda'
-country_path = '/Users/home/Documents/PhD/GBIF_source/CoordinateCleanerPy/countryref.rda'
-land_path = '/Users/home/Documents/PhD/GBIF_source/biomes/official/wwf_terr_ecos.shp'
-bioclim_1_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Bio1980-2010/CHELSA_bio1_1981-2010_V.2.1.tif'
+gbif_user = 'XXXX'
+gbif_password ='XXXX'
+raw_occ_folder_path = 'XXXX/0-Raw/'
+cleaned_occ_folder_path = '/XXXX/1-Cleaned/'
+thinned_occ_folder_path = '/XXXX/2-Thinned/'
+institutions_path = '/XXXX/institutions.rda'# downloaded from https://github.com/ropensci/CoordinateCleaner/blob/master/data/institutions.rda, saved under https://github.com/bbensid/Article1/blob/main/data/institutions.rda
+country_path = '/XXXX/countryref.rda' # downloaded from https://github.com/ropensci/CoordinateCleaner/blob/master/data/countryref.rda, saved under https://github.com/bbensid/Article1/blob/main/data/countryref.rda
+land_path = '/XXXX/wwf_terr_ecos.shp'##from https://www.sciencebase.gov/catalog/item/508fece8e4b0a1b43c29ca22
+bioclim_1_path = '/XXXX/CHELSA_bio1_1981-2010_V.2.1.tif'##from https://envicloud.wsl.ch/#/?prefix=chelsa%2Fchelsa_V2%2FGLOBAL%2F (climatologies/1981-2010/bio/ bio1 to bio19 )
 
 
 
@@ -55,10 +53,6 @@ def geodesic_point_buffer(lat, lon, m):
 
 ##GET INSTITUTIONS 
 
-response = requests.get(institutions_rda_url)
-with open(institutions_path, 'wb') as file:
-    file.write(response.content)
-
 result = pyreadr.read_r(institutions_path)
 
 institution_df = result['institutions'] 
@@ -75,10 +69,6 @@ institution_df = institution_df[['polygon','polygon_min_lat','polygon_max_lat','
 institution_gdf = geopandas.GeoDataFrame(institution_df, geometry=institution_df['polygon'],crs=crs)
 
 ##GET COUNTRY AND CAPITAL REFERENCE DATA
-
-response = requests.get(country_rda_url)
-with open(country_path, 'wb') as file:
-    file.write(response.content)
 
 result = pyreadr.read_r(country_path)
 country_base_df = result['countryref']
@@ -211,7 +201,7 @@ def clean_occ(taxon_key,taxon_name):
     df_biomes = df_biomes.drop(df_biomes[df_biomes.ECO_NAME == 'Lake'].index)
     gdf_biomes = geopandas.GeoDataFrame(df_biomes, geometry=df_biomes['polygon'],crs=crs)
     print(str(datetime.datetime.now()) + ": Finished preparing reference dataframes for cleaning")
-    del institution_df,country_centroid_df,capital_df,sf,df_biomes
+    del sf,df_biomes
     gc.collect()
     zip_file = ZipFile(raw_occ_path)
     print(str(datetime.datetime.now()) + ": Loading raw data...")
