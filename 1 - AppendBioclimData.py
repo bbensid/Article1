@@ -12,9 +12,9 @@ taxon_name = sys.argv[2]
 #######################################################################################################
 
 #Specific to running environment 
-thinned_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/2-Thinned/'
-bioclim_occ_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Occurrences/3-Bioclim/'
-bioclim_folder_path = '/Users/home/Documents/PhD/GBIF_source/Bioclim/Bio1980-2010/'
+thinned_occ_folder_path = 'XXXX/2-Thinned/'
+bioclim_occ_folder_path = 'XXXX/3-Bioclim/'
+bioclim_folder_path = '/XXXX/Bio1980-2010/'##from https://envicloud.wsl.ch/#/?prefix=chelsa%2Fchelsa_V2%2FGLOBAL%2F (climatologies/1981-2010/bio/ bio1 to bio19 )
 
 #######################################################################################################
 ############################################GET RAW DATA FROM GBIF#####################################
