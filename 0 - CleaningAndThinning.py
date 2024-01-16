@@ -31,7 +31,7 @@ thinned_occ_folder_path = '/XXXX/2-Thinned/'
 institutions_path = '/XXXX/institutions.rda'# downloaded from https://github.com/ropensci/CoordinateCleaner/blob/master/data/institutions.rda, saved under https://github.com/bbensid/Article1/blob/main/data/institutions.rda
 country_path = '/XXXX/countryref.rda' # downloaded from https://github.com/ropensci/CoordinateCleaner/blob/master/data/countryref.rda, saved under https://github.com/bbensid/Article1/blob/main/data/countryref.rda
 land_path = '/XXXX/wwf_terr_ecos.shp'##from https://www.sciencebase.gov/catalog/item/508fece8e4b0a1b43c29ca22
-bioclim_1_path = '/XXXX/CHELSA_bio1_1981-2010_V.2.1.tif'##from https://envicloud.wsl.ch/#/?prefix=chelsa%2Fchelsa_V2%2FGLOBAL%2F (climatologies/1981-2010/bio/ bio1 to bio19 )
+bioclim_1_path = '/XXXX/CHELSA_bio1_1981-2010_V.2.1.tif'##from https://envicloud.wsl.ch/#/?prefix=chelsa%2Fchelsa_V2%2FGLOBAL%2F (climatologies/1981-2010/bio/ bio1)
 
 
 
